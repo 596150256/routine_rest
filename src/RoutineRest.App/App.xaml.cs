@@ -35,6 +35,8 @@ public partial class App : System.Windows.Application
     private bool warnedTwo;
     private bool warnedOne;
     private bool previewOnly;
+    private bool diagnosticsEnabled;
+    private long lastDiagnostics;
     private bool savePending;
     private long lastTick;
     private long lastSave;
@@ -60,6 +62,7 @@ public partial class App : System.Windows.Application
             ExitApp();
         };
         previewOnly = e.Args.Contains("--preview") || e.Args.Contains("--smoke-test");
+        diagnosticsEnabled = e.Args.Contains("--diagnostics");
         DataDirectory = previewOnly ? Path.Combine(AppContext.BaseDirectory, "test-data")
             : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "RoutineRest");
         try
@@ -172,7 +175,8 @@ public partial class App : System.Windows.Application
         if (Engine.State.PendingWaterCount > 0 && water is null && tick > nextWaterReminder && !locked && !suspended && Engine.State.Phase != Phase.Resting)
         { nextWaterReminder = tick + 300000; Notify("上次休息的喝水量还没有记录，可在托盘菜单中填写。"); }
         if (tick - lastSave >= (savePending ? 1000 : 5000)) SaveState();
-        if (dashboard?.IsVisible == true) dashboard.Refresh();
+        dashboard?.Refresh();
+        if (diagnosticsEnabled && tick - lastDiagnostics >= 5000) WriteTimingDiagnostics(tick, input);
         if (tray is not null) tray.Text = Engine.State.Phase == Phase.Resting ? "Routine Rest · 休息中"
             : Engine.IsWorkPaused ? "Routine Rest · 无操作5分钟，计时已暂停"
             : $"Routine Rest · 距休息 {Math.Ceiling(Engine.RemainingSeconds / 60)} 分钟";
@@ -302,6 +306,22 @@ public partial class App : System.Windows.Application
         return sample;
     }
     internal void ScheduleSave() => savePending = true;
+    private sealed record TimingSnapshot(DateTimeOffset RecordedAt, uint LastInputTick, double SystemIdleSeconds,
+        double CountedIdleSeconds, double WorkSeconds, bool Paused, string DataDirectory, string BuildId);
+    private void WriteTimingDiagnostics(long tick, uint input)
+    {
+        lastDiagnostics = tick;
+        TimingSnapshot snapshot = new(DateTimeOffset.Now, input, Native.InputIdleSeconds(input), Engine.IdleSeconds,
+            Engine.State.WorkSeconds, Engine.IsWorkPaused, DataDirectory,
+            typeof(App).Assembly.ManifestModule.ModuleVersionId.ToString());
+        try
+        {
+            string path = Path.Combine(AppContext.BaseDirectory, "timing-diagnostics.json");
+            File.WriteAllText(path + ".tmp", System.Text.Json.JsonSerializer.Serialize(snapshot));
+            File.Move(path + ".tmp", path, true);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { /* Optional diagnostics must not interrupt the timer. */ }
+    }
     internal bool TryRecordWater(int millilitres, out string error)
     {
         try

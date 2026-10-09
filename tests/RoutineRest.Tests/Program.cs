@@ -58,6 +58,33 @@ internal static class Program
             e.Advance(Start.AddSeconds(901), 600, false, true);
             Equal(300d, e.State.WorkSeconds);
         });
+        Run("系统空闲快照停在零时，连续无新输入仍在5分钟暂停", () => {
+            RoutineEngine e = Working();
+            for (int second = 1; second <= 420; second++)
+                e.Advance(Start.AddSeconds(second), 1, false, true, 0);
+            Equal(300d, e.State.WorkSeconds);
+            True(e.IsWorkPaused);
+            e.Advance(Start.AddSeconds(421), 1, true, true, 0);
+            True(!e.IsWorkPaused);
+            e.Advance(Start.AddSeconds(422), 1, false, true, 0);
+            Equal(301d, e.State.WorkSeconds);
+        });
+        Run("系统空闲快照倒退不会恢复工作计时", () => {
+            RoutineEngine e = Working();
+            e.Advance(Start.AddSeconds(300), 300, false, true, 300);
+            e.Advance(Start.AddSeconds(360), 60, false, true, 1);
+            True(e.IsWorkPaused);
+            e.Advance(Start.AddSeconds(420), 60, false, true, 1);
+            Equal(300d, e.State.WorkSeconds);
+        });
+        Run("从40分钟倒计时开始无操作，7分钟后停在35分钟", () => {
+            RoutineEngine e = Working();
+            e.State.WorkSeconds = 600;
+            for (int second = 1; second <= 420; second++)
+                e.Advance(Start.AddSeconds(second), 1, false, true, 0);
+            Equal(2100d, e.RemainingSeconds);
+            True(e.IsWorkPaused);
+        });
         Run("恢复操作保留累计，不补算离开时间", () => {
             RoutineEngine e = Working();
             e.Advance(Start.AddSeconds(900), 900, false, true);

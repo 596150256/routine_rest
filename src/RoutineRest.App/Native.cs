@@ -25,6 +25,7 @@ internal static class Native
     [DllImport("kernel32.dll", CharSet = CharSet.Unicode)]
     internal static extern nint GetModuleHandle(string? module);
     [DllImport("kernel32.dll")] internal static extern uint GetCurrentThreadId();
+    [DllImport("kernel32.dll")] private static extern uint GetTickCount();
     [DllImport("user32.dll", SetLastError = true)] [return: MarshalAs(UnmanagedType.Bool)]
     internal static extern bool PostThreadMessage(uint threadId, uint message, nuint wParam, nint lParam);
     [DllImport("kernel32.dll", SetLastError = true)] private static extern uint SetThreadExecutionState(uint flags);
@@ -40,7 +41,7 @@ internal static class Native
         return input.Time;
     }
     /// <summary>Uses the same wrapping 32-bit monotonic clock as GetLastInputInfo; system clock changes do not affect idle time.</summary>
-    internal static double InputIdleSeconds(uint inputTick) => unchecked((uint)Environment.TickCount - inputTick) / 1000d;
+    internal static double InputIdleSeconds(uint inputTick) => unchecked(GetTickCount() - inputTick) / 1000d;
     internal static void KeepDisplayOn()
     {
         // Only inhibit automatic display-off; the user's no-sleep policy is left intact.

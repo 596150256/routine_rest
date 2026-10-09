@@ -6,7 +6,7 @@
    <TabItem Header="  今天  "><ScrollViewer VerticalScrollBarVisibility="Auto"><StackPanel Margin="4,22,4,8">
     <Border Background="#E5EBDC" CornerRadius="20" Padding="28">
      <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-      <StackPanel><TextBlock x:Name="PhaseLabel" Text="等待开始" FontSize="18"/><TextBlock x:Name="TimerLabel" Text="50:00" FontFamily="Segoe UI Light" FontSize="70"/><TextBlock x:Name="HintLabel" Text="首次键鼠操作后自动计时。" Foreground="{StaticResource Muted}"/></StackPanel>
+      <StackPanel><TextBlock x:Name="PhaseLabel" Text="等待开始" FontSize="18"/><TextBlock x:Name="TimerLabel" Text="50:00" FontFamily="Segoe UI Light" FontSize="70"/><TextBlock x:Name="HintLabel" Text="首次键鼠操作后自动计时。" Foreground="{StaticResource Muted}"/><TextBlock x:Name="ActivityLabel" Foreground="{StaticResource Muted}" FontSize="12" Margin="0,8,0,0"/></StackPanel>
       <StackPanel Grid.Column="1" VerticalAlignment="Center"><Button Content="预览休息界面" Click="PreviewClick"/><Button Content="现在开始休息" Click="RestClick" Background="#CBD9C1" Foreground="{StaticResource Ink}"/><TextBlock Text="预览不拦截输入；真实休息立即计时。" FontSize="11" Margin="0,12,0,0" Foreground="{StaticResource Muted}"/></StackPanel>
      </Grid>
     </Border>

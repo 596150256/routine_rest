@@ -46,6 +46,11 @@ public partial class MainWindow : Window
         HintLabel.Text = engine.IsWorkPaused ? "再次操作键盘或鼠标后继续累计，之前的工作时间会保留。"
             : engine.State.Phase == Phase.Working ? "累计工作 50 分钟后自动休息；连续无操作 5 分钟会暂停计时。"
             : "休息完成后，键鼠操作会开启下一轮。";
+        int idleSeconds = (int)Math.Floor(engine.IdleSeconds);
+        ActivityLabel.Text = engine.State.Phase == Phase.Working
+            ? engine.IsWorkPaused ? "连续无操作已满 05:00 · 工作计时已暂停"
+                : $"连续无操作 {idleSeconds / 60:00}:{idleSeconds % 60:00} / 05:00"
+            : "再次使用键鼠后开始累计工作时间。";
         DaySummary day = engine.Today(DateTimeOffset.Now);
         WorkToday.Text = RestViewModel.FormatMinutes(day.WorkSeconds);
         RestToday.Text = RestViewModel.FormatMinutes(day.RestSeconds);
