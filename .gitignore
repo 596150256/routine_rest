@@ -1,0 +1,11 @@
+**/bin/
+**/obj/
+artifacts/
+.vs/
+*.user
+app/
+test-data/
+state.json*
+error.log
+*-preview.png
+smoke-result.txt

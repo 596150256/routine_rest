@@ -1,0 +1,49 @@
+<Window x:Class="RoutineRest.App.MainWindow" Style="{StaticResource {x:Type Window}}" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" Title="Routine Rest · 每天的节奏" Width="1040" Height="820" MinWidth="880" MinHeight="650" WindowStartupLocation="CenterScreen">
+ <Grid Margin="30" Background="{StaticResource Cream}">
+  <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+  <Grid Margin="0,0,0,20"><StackPanel><TextBlock Text="routine rest" FontSize="28" FontWeight="SemiBold"/><TextBlock Text="认真工作，也认真休息。" Margin="0,7,0,0" Foreground="{StaticResource Muted}"/></StackPanel><TextBlock Text="50 分钟专注 / 10 分钟留白" HorizontalAlignment="Right" VerticalAlignment="Center" Foreground="{StaticResource Muted}"/></Grid>
+  <TabControl Grid.Row="1" BorderThickness="0" Background="Transparent">
+   <TabItem Header="  今天  "><ScrollViewer VerticalScrollBarVisibility="Auto"><StackPanel Margin="4,22,4,8">
+    <Border Background="#E5EBDC" CornerRadius="20" Padding="28">
+     <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+      <StackPanel><TextBlock x:Name="PhaseLabel" Text="等待开始" FontSize="18"/><TextBlock x:Name="TimerLabel" Text="50:00" FontFamily="Segoe UI Light" FontSize="70"/><TextBlock x:Name="HintLabel" Text="首次键鼠操作后自动计时。" Foreground="{StaticResource Muted}"/></StackPanel>
+      <StackPanel Grid.Column="1" VerticalAlignment="Center"><Button Content="预览休息界面" Click="PreviewClick"/><Button Content="现在开始休息" Click="RestClick" Background="#CBD9C1" Foreground="{StaticResource Ink}"/><TextBlock Text="预览不拦截输入；真实休息立即计时。" FontSize="11" Margin="0,12,0,0" Foreground="{StaticResource Muted}"/></StackPanel>
+     </Grid>
+    </Border>
+    <UniformGrid Columns="3" Margin="0,18,0,20">
+     <Border Background="#FFFEFA" CornerRadius="14" Padding="20" Margin="0,0,12,0"><StackPanel><TextBlock Text="今日工作" Foreground="{StaticResource Muted}"/><TextBlock x:Name="WorkToday" Text="0 分钟" FontSize="27" Margin="0,9,0,0"/></StackPanel></Border>
+     <Border Background="#FFFEFA" CornerRadius="14" Padding="20" Margin="0,0,12,0"><StackPanel><TextBlock Text="今日休息" Foreground="{StaticResource Muted}"/><TextBlock x:Name="RestToday" Text="0 分钟" FontSize="27" Margin="0,9,0,0"/></StackPanel></Border>
+     <Border Background="#FFFEFA" CornerRadius="14" Padding="20"><StackPanel><TextBlock Text="今日喝水" Foreground="{StaticResource Muted}"/><TextBlock x:Name="WaterToday" Text="0 ml" FontSize="27" Margin="0,9,0,0"/></StackPanel></Border>
+    </UniformGrid>
+    <TextBlock Text="每日记录" FontSize="18" FontWeight="SemiBold" Margin="0,0,0,12"/>
+    <DataGrid MinColumnWidth="110" HorizontalScrollBarVisibility="Disabled" x:Name="HistoryGrid" AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False" CanUserDeleteRows="False" HeadersVisibility="Column" GridLinesVisibility="Horizontal" RowHeight="36" ColumnHeaderHeight="36" BorderThickness="0" Background="#FFFEFA" MaxHeight="240" SelectionMode="Single">
+     <DataGrid.Columns><DataGridTextColumn Header="日期" Binding="{Binding Date}" Width="*"/><DataGridTextColumn Header="工作" Binding="{Binding Work}" Width="*"/><DataGridTextColumn Header="休息" Binding="{Binding Rest}" Width="*"/><DataGridTextColumn Header="完成 / 中断" Binding="{Binding Breaks}" Width="*"/><DataGridTextColumn Header="喝水" Binding="{Binding Water}" Width="*"/></DataGrid.Columns>
+    </DataGrid>
+    <StackPanel Orientation="Horizontal" Margin="0,14,0,0"><Button Content="导出每日统计 CSV" Click="ExportClick" Background="#E2E6DC" Foreground="{StaticResource Ink}"/><Button x:Name="PendingWaterButton" Content="填写本次喝水量" Click="WaterClick" Visibility="Collapsed"/></StackPanel>
+   </StackPanel></ScrollViewer></TabItem>
+   <TabItem Header="  音乐与设置  "><ScrollViewer VerticalScrollBarVisibility="Auto"><StackPanel Margin="12,22">
+    <TextBlock Text="每日饮水目标" FontSize="20" FontWeight="SemiBold" Margin="0,0,0,10"/>
+    <StackPanel Orientation="Horizontal">
+     <ComboBox x:Name="DailyWaterCups" Width="120" Height="34" VerticalContentAlignment="Center" SelectionChanged="WaterGoalChanged" AutomationProperties.Name="每日目标杯数"/>
+     <TextBlock x:Name="WaterGoalLabel" Margin="14,0,0,0" VerticalAlignment="Center"/>
+    </StackPanel>
+    <TextBlock Text="每杯固定 300 ml；按自己的需要调整目标，休息界面用水杯水位显示进度。" TextWrapping="Wrap" Foreground="{StaticResource Muted}" Margin="0,9,0,22"/>
+
+    <TextBlock Text="给休息配一点声音" FontSize="24" FontWeight="SemiBold"/>
+    <TextBlock Text="未导入歌曲时，自动播放内置原创环境音。音乐只在休息期间播放。" Foreground="{StaticResource Muted}" Margin="0,10,0,16"/>
+    <CheckBox x:Name="MusicEnabled" Content="休息时自动播放音乐" Checked="SettingsChanged" Unchecked="SettingsChanged"/>
+    <TextBlock Text="播放音量" Margin="0,12,0,7"/><Slider x:Name="Volume" Minimum="0" Maximum="100" Width="340" HorizontalAlignment="Left" ValueChanged="VolumeChanged" AutomationProperties.Name="播放音量"/>
+    <TextBlock x:Name="PlaylistLabel" Text="当前：内置环境音" Margin="0,18,0,10" TextWrapping="Wrap"/>
+    <StackPanel Orientation="Horizontal"><Button Content="导入本地歌曲" Click="ImportMusicClick"/><Button Content="恢复内置环境音" Click="ResetMusicClick" Background="#E2E6DC" Foreground="{StaticResource Ink}"/></StackPanel>
+    <TextBlock Text="支持 MP3、WAV、M4A、WMA；按选择的列表循环播放。" Foreground="{StaticResource Muted}" FontSize="12" Margin="0,6,0,24"/>
+    <Separator Background="#D5DDCF"/>
+    <CheckBox x:Name="AutoStart" Content="登录 Windows 时自动启动" Checked="AutoStartChanged" Unchecked="AutoStartChanged"/>
+    <TextBlock Text="工作 50 分钟后自动休息 10 分钟。普通无操作不清零；锁屏或睡眠满 10 分钟计作自然休息。" TextWrapping="Wrap" Foreground="{StaticResource Muted}" Margin="0,14,0,10"/>
+    <Border Background="#EDE3D2" CornerRadius="12" Padding="18" Margin="0,10,0,16"><StackPanel><TextBlock Text="紧急解除" FontWeight="SemiBold" FontSize="16"/><TextBlock Text="同时按住 Ctrl + Shift + F12，持续 8 秒。" Margin="0,10,0,5"/><TextBlock Text="只在紧急情况使用，解除会计入“中断”。Windows 安全界面仍由系统控制。" TextWrapping="Wrap" Foreground="#786B55"/></StackPanel></Border>
+    <TextBlock x:Name="DataPathLabel" TextWrapping="Wrap" FontSize="12" Foreground="{StaticResource Muted}"/>
+    <TextBlock Text="休息时临时防黑屏，结束后恢复原设置；不修改睡眠或休眠方案。" FontSize="12" Foreground="{StaticResource Muted}" Margin="0,10,0,0"/>
+   </StackPanel></ScrollViewer></TabItem>
+  </TabControl>
+  <TextBlock Grid.Row="2" Text="关闭此窗口后仍在托盘运行。双击托盘图标可重新打开。" Foreground="{StaticResource Muted}" FontSize="12" Margin="0,16,0,0"/>
+ </Grid>
+</Window>

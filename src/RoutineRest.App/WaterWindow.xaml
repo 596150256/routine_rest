@@ -1,0 +1,12 @@
+<Window x:Class="RoutineRest.App.WaterWindow" Style="{StaticResource {x:Type Window}}" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" Title="休息结束 · 记录喝水" Width="490" Height="420" ResizeMode="NoResize" WindowStartupLocation="CenterScreen" Topmost="True">
+ <StackPanel Margin="32" Background="{StaticResource Cream}">
+  <TextBlock Text="欢迎回来。" FontSize="30" FontWeight="SemiBold"/>
+  <TextBlock Text="刚才喝了多少水？记下一点小小的照顾。" Margin="0,12,0,24" Foreground="{StaticResource Muted}"/>
+  <StackPanel Orientation="Horizontal"><Button Content="150 ml" Tag="150" Click="PresetClick"/><Button Content="一杯 300 ml" Tag="300" Click="PresetClick"/><Button Content="500 ml" Tag="500" Click="PresetClick"/></StackPanel>
+  <TextBlock Text="本次喝水量（ml）" Margin="0,16,0,8"/>
+  <TextBox x:Name="Amount" Text="300" MaxLength="4" AutomationProperties.Name="本次喝水量，毫升"/>
+  <TextBlock x:Name="ErrorLabel" Foreground="#A33C31" Height="26" Margin="0,5,0,0"/>
+  <StackPanel Orientation="Horizontal"><Button Content="保存记录" Click="SaveClick" IsDefault="True"/><Button Content="这次没喝水" Click="NoneClick" Background="#E2E6DC" Foreground="{StaticResource Ink}"/></StackPanel>
+  <TextBlock Text="输入已经恢复，下一轮会随键鼠操作自动开始。" FontSize="11" Foreground="{StaticResource Muted}" Margin="0,12,0,0"/>
+ </StackPanel>
+</Window>
