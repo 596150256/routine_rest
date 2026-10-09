@@ -81,15 +81,39 @@ public sealed class RoutineEngine
         State.LastCheckpoint = now;
     }
 
-    public void RecordWater(int millilitres, DateTimeOffset now)
+    /// <summary>Records a water entry, rolling back its in-memory changes if the supplied persistence operation fails.</summary>
+    public void RecordWater(int millilitres, DateTimeOffset now, Action<AppState>? persist = null)
     {
         if (millilitres < 0 || millilitres > 5000) throw new ArgumentOutOfRangeException(nameof(millilitres));
         if (State.PendingWaterCount == 0) throw new InvalidOperationException("当前没有待填写的休息记录。");
+        string dayKey = now.ToLocalTime().ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+        bool hadDay = State.Days.ContainsKey(dayKey);
+        DaySummary day = Today(now);
+        int previousWater = day.WaterMl;
+        int updatedWater = checked(previousWater + millilitres);
+        int previousPending = State.PendingWaterCount;
+        Phase previousPhase = State.Phase;
+        DateTimeOffset previousCheckpoint = State.LastCheckpoint;
+        int entryIndex = State.WaterEntries.Count;
         State.WaterEntries.Add(new WaterEntry(now, millilitres));
-        Today(now).WaterMl = checked(Today(now).WaterMl + millilitres);
-        State.PendingWaterCount--;
-        if (State.Phase == Phase.Hydration) State.Phase = Phase.Waiting;
-        State.LastCheckpoint = now;
+        try
+        {
+            day.WaterMl = updatedWater;
+            State.PendingWaterCount--;
+            if (State.Phase == Phase.Hydration) State.Phase = Phase.Waiting;
+            State.LastCheckpoint = now;
+            persist?.Invoke(State);
+        }
+        catch
+        {
+            State.WaterEntries.RemoveAt(entryIndex);
+            day.WaterMl = previousWater;
+            State.PendingWaterCount = previousPending;
+            State.Phase = previousPhase;
+            State.LastCheckpoint = previousCheckpoint;
+            if (!hadDay) State.Days.Remove(dayKey);
+            throw;
+        }
     }
 
     public void EmergencyRelease(DateTimeOffset now, string reason)

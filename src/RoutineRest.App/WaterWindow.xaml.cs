@@ -21,9 +21,13 @@ public partial class WaterWindow : Window
     private void Save(int amount)
     {
         if (submitted) return;
-        app.Engine.RecordWater(amount, DateTimeOffset.Now);
+        if (!app.TryRecordWater(amount, out string error))
+        {
+            ErrorLabel.Text = "保存失败，记录未提交；请检查数据目录后重试。";
+            ErrorLabel.ToolTip = error;
+            return;
+        }
         submitted = true;
-        app.SaveState();
         Close();
     }
 }

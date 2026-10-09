@@ -277,6 +277,13 @@ public partial class App : System.Windows.Application
     {
         if (music is null || Engine.State.Phase == Phase.Resting) return;
         RoutineEngine sample = CreatePreviewEngine();
+        DaySummary currentDay = Engine.Today(DateTimeOffset.Now);
+        DaySummary previewDay = sample.Today(DateTimeOffset.Now);
+        previewDay.WorkSeconds = currentDay.WorkSeconds;
+        previewDay.RestSeconds = currentDay.RestSeconds;
+        previewDay.WaterMl = currentDay.WaterMl;
+        previewDay.CompletedBreaks = currentDay.CompletedBreaks;
+        sample.State.Settings.DailyWaterCups = Engine.State.Settings.DailyWaterCups;
         RestViewModel model = new() { ModeText = "预览 · 不拦截输入" };
         model.Update(sample, music, 0, DateTimeOffset.Now);
         RestWindow preview = new() { DataContext = model, Width = 1152, Height = 720, WindowStyle = WindowStyle.SingleBorderWindow, ResizeMode = ResizeMode.CanResize, ShowInTaskbar = true, Topmost = false, WindowStartupLocation = WindowStartupLocation.CenterScreen };
@@ -289,12 +296,28 @@ public partial class App : System.Windows.Application
     {
         RoutineEngine sample = new(new AppState());
         DaySummary day = sample.Today(DateTimeOffset.Now);
-        day.WorkSeconds = 7500; day.RestSeconds = 1260; day.WaterMl = 650; day.CompletedBreaks = 2;
+        day.WorkSeconds = 7500; day.RestSeconds = 1260; day.WaterMl = 300; day.CompletedBreaks = 2;
         sample.StartRest(DateTimeOffset.Now);
         sample.State.RestSeconds = 83;
         return sample;
     }
     internal void ScheduleSave() => savePending = true;
+    internal bool TryRecordWater(int millilitres, out string error)
+    {
+        try
+        {
+            if (store is null) throw new IOException("无法访问本地数据目录。");
+            Engine.RecordWater(millilitres, DateTimeOffset.Now, store.Save);
+            savingFailed = false; lastSave = Environment.TickCount64; savePending = false;
+            error = "";
+            return true;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            error = ex.Message;
+            return false;
+        }
+    }
     public void SaveState()
     {
         if (store is null) return;
