@@ -26,6 +26,8 @@ public sealed class RoutineEngine
             throw new ArgumentOutOfRangeException(nameof(secondsSinceLastInput));
         double idleAtStart = IdleSeconds;
         double currentIdle = secondsSinceLastInput ?? (newInput ? 0 : idleAtStart + elapsedSeconds);
+        // Without a new input timestamp, a stale or decreasing OS snapshot must never restart the grace period.
+        if (!newInput) currentIdle = Math.Max(currentIdle, idleAtStart + elapsedSeconds);
         IdleSeconds = sessionAvailable ? Math.Min(IdleTimeout, currentIdle) : IdleTimeout;
         State.LastCheckpoint = now;
         switch (State.Phase)
