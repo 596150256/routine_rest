@@ -18,6 +18,8 @@ internal sealed class RestViewModel : INotifyPropertyChanged
     public string WaterLabel { get; private set; } = "";
     public string WaterStatus { get; private set; } = "";
     public string WaterAccessibleLabel { get; private set; } = "";
+    public string WaterAmountText { get; private set; } = "";
+    public string WaterGoalText { get; private set; } = "";
     public System.Collections.Generic.IReadOnlyList<CupView> WaterCups { get; private set; } = Array.Empty<CupView>();
     public int WaterCupColumns { get; private set; } = 6;
     private int cachedWater = -1;
@@ -54,13 +56,17 @@ internal sealed class RestViewModel : INotifyPropertyChanged
         {
             WaterProgress progress = WaterProgress.From(day.WaterMl, goal);
             WaterCups = System.Linq.Enumerable.ToArray(System.Linq.Enumerable.Select(progress.Cups, fill => new CupView(fill * 42)));
-            WaterCupColumns = Math.Min(goal, 6);
-            WaterStatus = progress.Fraction >= 1 ? "今日目标已完成" : progress.Fraction >= 0.75 ? "快到目标了" : progress.Fraction >= 0.5 ? "已经过半" : progress.Fraction > 0 ? "慢慢积累中" : "从第一杯开始";
+            WaterCupColumns = Math.Clamp(progress.Cups.Count, 1, 6);
+            WaterStatus = progress.Fraction >= 1 ? "今日目标已完成" : progress.Fraction >= 0.75 ? "快到目标了" : progress.Fraction >= 0.5 ? "已经过半" : progress.Fraction > 0 ? "慢慢积累中" : "今天还没有记录饮水";
+            if (progress.AdditionalMillilitres > 0) WaterStatus = $"另有 {progress.AdditionalMillilitres} ml 已计入总量";
+            WaterAmountText = day.WaterMl > 0 && day.WaterMl % WaterProgress.CupMillilitres == 0
+                ? $"{day.WaterMl} ml · {day.WaterMl / WaterProgress.CupMillilitres} 杯" : $"{day.WaterMl} ml";
+            WaterGoalText = $"每日目标 {goal} 杯（{goal * WaterProgress.CupMillilitres} ml）· 每杯 300 ml";
             WaterAccessibleLabel = $"今日已喝{day.WaterMl}毫升，目标{goal * 300}毫升，完成{progress.Fraction:P0}";
             cachedWater = day.WaterMl; cachedGoal = goal;
         }
 
-        WaterLabel = WaterStatus;
+        WaterLabel = $"{day.WaterMl} ml";
         BreakLabel = $"已休息 · 完成 {day.CompletedBreaks} 次";
         int index = Math.Clamp((int)(engine.State.RestSeconds / 120), 0, Activities.Length - 1);
         (ActivityEyebrow, ActivityTitle, ActivityBody) = Activities[index];

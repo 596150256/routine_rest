@@ -153,6 +153,35 @@ internal static class Program
             e.RecordWater(0, Start);
             Throws<InvalidOperationException>(() => e.RecordWater(250, Start));
         });
+        Run("保存失败不消耗待填记录，重试只累计一次", () => {
+            RoutineEngine e = Resting();
+            e.Advance(Start.AddHours(1), 600, false, true);
+            DateTimeOffset checkpoint = e.State.LastCheckpoint;
+            Throws<IOException>(() => e.RecordWater(300, Start.AddHours(1), _ => throw new IOException("模拟写入失败")));
+            Equal(0, e.Today(Start).WaterMl);
+            Equal(0, e.State.WaterEntries.Count);
+            Equal(1, e.State.PendingWaterCount);
+            Equal(Phase.Hydration, e.State.Phase);
+            Equal(checkpoint, e.State.LastCheckpoint);
+            string folder = Path.Combine(Path.GetTempPath(), "routine-rest-water-retry-" + Guid.NewGuid().ToString("N"));
+            try {
+                JsonStateStore store = new(folder);
+                e.RecordWater(300, Start.AddHours(1), store.Save);
+                Equal(300, e.Today(Start).WaterMl);
+                Equal(1, e.State.WaterEntries.Count);
+                Equal(0, e.State.PendingWaterCount);
+                Equal(300, store.Load().Days[Start.ToLocalTime().ToString("yyyy-MM-dd")].WaterMl);
+                Equal(1, store.Load().WaterEntries.Count);
+            } finally { if (Directory.Exists(folder)) Directory.Delete(folder, true); }
+        });
+        Run("保存失败不会遗留新建日期的虚假喝水统计", () => {
+            RoutineEngine e = new(new AppState { Phase = Phase.Hydration, PendingWaterCount = 1 });
+            Throws<UnauthorizedAccessException>(() => e.RecordWater(300, Start, _ => throw new UnauthorizedAccessException("模拟无权限")));
+            Equal(0, e.State.Days.Count);
+            Equal(0, e.State.WaterEntries.Count);
+            Equal(1, e.State.PendingWaterCount);
+            Equal(Phase.Hydration, e.State.Phase);
+        });
         Run("紧急解除记次数而不记完成", () => {
             RoutineEngine e = Resting();
             e.Advance(Start.AddSeconds(3010), 10, false, true);
@@ -270,19 +299,34 @@ internal static class Program
 
         Run("300ml一杯，部分饮水保留杯内水位", () => {
             WaterProgress p = WaterProgress.From(650, 6);
-            Equal(6, p.Cups.Count);
+            Equal(3, p.Cups.Count);
             Equal(1d, p.Cups[0]);
             Equal(1d, p.Cups[1]);
             True(Math.Abs(p.Cups[2] - 1d / 6) < 0.0001);
-            Equal(0d, p.Cups[3]);
             True(Math.Abs(p.Fraction - 650d / 1800) < 0.0001);
         });
-        Run("空杯和超过目标的进度正确封顶", () => {
+        Run("300ml只显示一杯，不把目标6杯算成已喝", () => {
+            WaterProgress p = WaterProgress.From(300, 6);
+            Equal(1, p.Cups.Count);
+            Equal(1d, p.Cups[0]);
+            True(Math.Abs(p.Fraction - 1d / 6) < 0.0001);
+        });
+        Run("150ml显示半杯，大总量显示有界且不丢失额外毫升", () => {
+            WaterProgress half = WaterProgress.From(150, 6);
+            Equal(1, half.Cups.Count);
+            Equal(0.5d, half.Cups[0]);
+            WaterProgress large = WaterProgress.From(int.MaxValue, 6);
+            Equal(12, large.Cups.Count);
+            Equal(int.MaxValue - 3600, large.AdditionalMillilitres);
+            Equal(1d, large.Fraction);
+        });
+        Run("未喝水不显示已喝杯，超过目标仍显示实际杯数", () => {
             WaterProgress empty = WaterProgress.From(0, 6);
             Equal(0d, empty.Fraction);
-            foreach (double cup in empty.Cups) Equal(0d, cup);
+            Equal(0, empty.Cups.Count);
             WaterProgress full = WaterProgress.From(2100, 6);
             Equal(1d, full.Fraction);
+            Equal(7, full.Cups.Count);
             foreach (double cup in full.Cups) Equal(1d, cup);
         });
         Run("每日杯数可配置且无效目标被拒绝", () => {
