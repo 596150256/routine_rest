@@ -326,37 +326,45 @@ internal static class Program
 
         Run("300ml一杯，部分饮水保留杯内水位", () => {
             WaterProgress p = WaterProgress.From(650, 6);
-            Equal(3, p.Cups.Count);
+            Equal(6, p.Cups.Count);
             Equal(1d, p.Cups[0]);
             Equal(1d, p.Cups[1]);
             True(Math.Abs(p.Cups[2] - 1d / 6) < 0.0001);
+            Equal(0d, p.Cups[3]);
+            Equal(0d, p.Cups[4]);
+            Equal(0d, p.Cups[5]);
             True(Math.Abs(p.Fraction - 650d / 1800) < 0.0001);
         });
-        Run("300ml只显示一杯，不把目标6杯算成已喝", () => {
+        Run("300ml显示一杯已喝和五杯空杯", () => {
             WaterProgress p = WaterProgress.From(300, 6);
-            Equal(1, p.Cups.Count);
+            Equal(6, p.Cups.Count);
             Equal(1d, p.Cups[0]);
+            for (int cup = 1; cup < p.Cups.Count; cup++) Equal(0d, p.Cups[cup]);
             True(Math.Abs(p.Fraction - 1d / 6) < 0.0001);
         });
         Run("150ml显示半杯，大总量显示有界且不丢失额外毫升", () => {
             WaterProgress half = WaterProgress.From(150, 6);
-            Equal(1, half.Cups.Count);
+            Equal(6, half.Cups.Count);
             Equal(0.5d, half.Cups[0]);
+            Equal(0d, half.Cups[1]);
             WaterProgress large = WaterProgress.From(int.MaxValue, 6);
-            Equal(12, large.Cups.Count);
-            Equal(int.MaxValue - 3600, large.AdditionalMillilitres);
+            Equal(6, large.Cups.Count);
+            Equal(int.MaxValue - 1800, large.AdditionalMillilitres);
             Equal(1d, large.Fraction);
         });
-        Run("未喝水不显示已喝杯，超过目标仍显示实际杯数", () => {
+        Run("未喝水显示全部空杯，超过目标保留额外毫升", () => {
             WaterProgress empty = WaterProgress.From(0, 6);
             Equal(0d, empty.Fraction);
-            Equal(0, empty.Cups.Count);
+            Equal(6, empty.Cups.Count);
+            foreach (double cup in empty.Cups) Equal(0d, cup);
             WaterProgress full = WaterProgress.From(2100, 6);
             Equal(1d, full.Fraction);
-            Equal(7, full.Cups.Count);
+            Equal(6, full.Cups.Count);
+            Equal(300, full.AdditionalMillilitres);
             foreach (double cup in full.Cups) Equal(1d, cup);
         });
         Run("每日杯数可配置且无效目标被拒绝", () => {
+            Equal(5, WaterProgress.From(750, 5).Cups.Count);
             Equal(0.5d, WaterProgress.From(750, 5).Fraction);
             Throws<ArgumentOutOfRangeException>(() => WaterProgress.From(0, 0));
             Throws<ArgumentOutOfRangeException>(() => WaterProgress.From(0, 13));
