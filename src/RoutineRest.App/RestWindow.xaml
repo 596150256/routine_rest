@@ -64,10 +64,9 @@
     <Grid.ColumnDefinitions><ColumnDefinition Width="1.2*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
     <Border Background="#FFFEFA" CornerRadius="22" Margin="0,0,24,0" Padding="28,23">
      <StackPanel><TextBlock Text="今天的节奏" FontSize="14" Foreground="#697366"/>
-      <UniformGrid Columns="3" Margin="0,22,0,0">
+      <UniformGrid Columns="2" Margin="0,22,0,0">
        <StackPanel><TextBlock Text="{Binding WorkLabel}" FontSize="27" FontWeight="SemiBold"/><TextBlock Text="已工作" Foreground="#6D786B" Margin="0,9,0,0"/></StackPanel>
        <StackPanel><TextBlock Text="{Binding RestLabel}" FontSize="27" FontWeight="SemiBold"/><TextBlock Text="{Binding BreakLabel}" Foreground="#6D786B" Margin="0,9,0,0"/></StackPanel>
-       <StackPanel><TextBlock Text="{Binding WaterLabel}" FontSize="27" FontWeight="SemiBold"/><TextBlock Text="今日已喝" Foreground="#6D786B" Margin="0,9,0,0"/></StackPanel>
       </UniformGrid>
      </StackPanel>
     </Border>

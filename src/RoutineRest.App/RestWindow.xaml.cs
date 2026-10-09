@@ -15,7 +15,6 @@ internal sealed class RestViewModel : INotifyPropertyChanged
     public string ModeText { get; set; } = "正在休息";
     public string WorkLabel { get; private set; } = "";
     public string RestLabel { get; private set; } = "";
-    public string WaterLabel { get; private set; } = "";
     public string WaterStatus { get; private set; } = "";
     public string WaterAccessibleLabel { get; private set; } = "";
     public string WaterAmountText { get; private set; } = "";
@@ -58,7 +57,8 @@ internal sealed class RestViewModel : INotifyPropertyChanged
             WaterCups = System.Linq.Enumerable.ToArray(System.Linq.Enumerable.Select(progress.Cups, fill => new CupView(fill * 42)));
             WaterCupColumns = Math.Clamp(progress.Cups.Count, 1, 6);
             WaterStatus = progress.Fraction >= 1 ? "今日目标已完成" : progress.Fraction >= 0.75 ? "快到目标了" : progress.Fraction >= 0.5 ? "已经过半" : progress.Fraction > 0 ? "慢慢积累中" : "今天还没有记录饮水";
-            if (progress.AdditionalMillilitres > 0) WaterStatus = $"另有 {progress.AdditionalMillilitres} ml 已计入总量";
+            if (progress.AdditionalMillilitres > 0) WaterStatus = $"超出今日目标 {progress.AdditionalMillilitres} ml";
+            WaterStatus = "蓝色为已喝，空杯为剩余目标 · " + WaterStatus;
             WaterAmountText = day.WaterMl > 0 && day.WaterMl % WaterProgress.CupMillilitres == 0
                 ? $"{day.WaterMl} ml · {day.WaterMl / WaterProgress.CupMillilitres} 杯" : $"{day.WaterMl} ml";
             WaterGoalText = $"每日目标 {goal} 杯（{goal * WaterProgress.CupMillilitres} ml）· 每杯 300 ml";
@@ -66,7 +66,6 @@ internal sealed class RestViewModel : INotifyPropertyChanged
             cachedWater = day.WaterMl; cachedGoal = goal;
         }
 
-        WaterLabel = $"{day.WaterMl} ml";
         BreakLabel = $"已休息 · 完成 {day.CompletedBreaks} 次";
         int index = Math.Clamp((int)(engine.State.RestSeconds / 120), 0, Activities.Length - 1);
         (ActivityEyebrow, ActivityTitle, ActivityBody) = Activities[index];
