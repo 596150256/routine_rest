@@ -150,8 +150,7 @@ Clarity, maintainability, resource limits, failure paths, compatibility, documen
 
 Security review (security-review skill): injection, authentication, data exposure, access control, configuration, deserialization, components, logging and SSRF checked. No shell construction from snapshot contents, no new network access, no credentials, no elevated application privileges and no third-party packages. Snapshot size, field values, note length and integer overflow are bounded/validated. Personal state and binaries remain excluded from Git. Authentication/remote authorization/SQL/XML/Web templates are not applicable.
 
-Validation: 50 behavior tests passed, WPF Release publish passed, migration CLI Release build passed with zero warnings/errors. File-lock and actual cross-context duplicate launch verified locally. Normal desktop restart and final physical file-path verification are recorded in the local verification document before task completion. Windows CI also builds the migration CLI.
+Validation: 50 behavior tests passed, WPF Release publish passed, migration CLI Release build passed with zero warnings/errors. File-lock and actual cross-context duplicate launch verified locally. Normal desktop restart preserved the live timer and migrated entries; diagnostics confirmed the same physical executable-adjacent data directory. Both push and PR Windows CI passed. Windows CI also builds the migration CLI.
 
 **Review Status: COMPLETE. Unaddressed: 0.**
 <!-- REVIEW:END -->
-
