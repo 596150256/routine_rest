@@ -21,6 +21,8 @@ public partial class App : System.Windows.Application
     private readonly List<RestWindow> covers = new();
     private readonly RestViewModel restModel = new();
     private JsonStateStore? store;
+    private FileStream? writerLease;
+    private bool stateReady;
     private MusicService? music;
     private InputGuard? guard;
     private Forms.NotifyIcon? tray;
@@ -64,7 +66,7 @@ public partial class App : System.Windows.Application
         previewOnly = e.Args.Contains("--preview") || e.Args.Contains("--smoke-test");
         diagnosticsEnabled = e.Args.Contains("--diagnostics");
         DataDirectory = previewOnly ? Path.Combine(AppContext.BaseDirectory, "test-data")
-            : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "RoutineRest");
+            : DataLocation.ForExecutable(AppContext.BaseDirectory);
         try
         {
             Directory.CreateDirectory(DataDirectory);
@@ -72,9 +74,21 @@ public partial class App : System.Windows.Application
             {
                 singleton = new Mutex(true, @"Local\RoutineRest-" + Environment.UserName, out bool created);
                 ownsMutex = created;
-                if (!created) { MessageBox.Show("Routine Rest 已在托盘运行。双击托盘叶子图标打开。"); Shutdown(); return; }
+                if (!created) {
+                    if (!e.Args.Contains("--background")) MessageBox.Show("Routine Rest 已在托盘运行。双击托盘叶子图标打开。");
+                    Shutdown(); return;
+                }
+                try { writerLease = DataLocation.AcquireWriter(DataDirectory); }
+                catch (IOException ex) when ((ex.HResult & 0xffff) is 32 or 33)
+                {
+                    if (!e.Args.Contains("--background")) MessageBox.Show("Routine Rest 已在运行，统一记录已由另一实例使用。双击托盘叶子图标打开。");
+                    ExitApp(); return;
+                }
                 store = new JsonStateStore(DataDirectory);
+                string legacyFile = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "RoutineRest", "state.json");
+                StateMigration.ImportIfEmpty(store, new[] { legacyFile });
                 Engine = new RoutineEngine(store.Load());
+                stateReady = true;
                 Engine.Recover(DateTimeOffset.Now, Native.InputIdleSeconds(Native.LastInputTick()));
             }
             music = new MusicService(DataDirectory, Engine.State.Settings);
@@ -340,7 +354,7 @@ public partial class App : System.Windows.Application
     }
     public void SaveState()
     {
-        if (store is null) return;
+        if (store is null || !stateReady) return;
         try { store.Save(Engine.State); savingFailed = false; lastSave = Environment.TickCount64; savePending = false; }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
@@ -370,10 +384,11 @@ public partial class App : System.Windows.Application
         music?.Dispose();
         if (ownsMutex) { singleton?.ReleaseMutex(); ownsMutex = false; }
         singleton?.Dispose();
+        writerLease?.Dispose(); writerLease = null;
         Shutdown();
     }
     protected override void OnSessionEnding(SessionEndingCancelEventArgs e) { SaveState(); CleanupBlocking(); base.OnSessionEnding(e); }
-    protected override void OnExit(ExitEventArgs e) { CleanupBlocking(); base.OnExit(e); }
+    protected override void OnExit(ExitEventArgs e) { CleanupBlocking(); writerLease?.Dispose(); writerLease = null; base.OnExit(e); }
 
     private void RunPreviewExport()
     {

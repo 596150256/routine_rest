@@ -76,15 +76,27 @@ dotnet publish src/RoutineRest.App/RoutineRest.App.csproj -c Release --self-cont
 
 ## 数据保存与更新
 
-每个 Windows 用户的数据保存在：
+数据保存在 EXE 旁的 `data` 文件夹。例如本项目构建后的路径为：
 
 ```text
-%LOCALAPPDATA%\RoutineRest\state.json
+app\data\state.json
 ```
+
+同一个 EXE 的 Windows 登录自启动、直接双击和其他启动方式共用这一份文件，不使用当前工作目录，也不会因启动父进程的 AppData 重定向而分成多份。设置页显示绝对路径。程序用文件锁保证同一数据目录只能由一个实例写入；目录不可写时提示启动失败，不偷偷换目录创建第二套记录。请放在当前用户可写的目录中使用。
 
 包括设置、每日工作/休息统计、喝水记录及紧急解除记录。所有数据留在本机，不上传，不记录键盘输入内容。每 5 秒和重要状态变化后保存，原子替换文件并保留上一份备份；主窗口可导出每日 CSV。
 
-更新源码后，先从托盘退出应用，再重新执行构建命令，然后启动 `app/RoutineRest.exe`。个人数据保存在用户目录，重新构建不会清除它们。下载新版本后不会自动重算历史统计。
+更新源码后，先从托盘退出应用，再重新执行构建命令，然后启动 `app/RoutineRest.exe`。**保留 `app/data` 文件夹**；换到另一个程序目录时，把整个 `data` 文件夹一起复制。它包含个人记录，给别人分享程序时不要带上这个文件夹。下载新版本后不会自动重算历史统计。
+
+首次启动且统一记录不存在时，会复制当前可见的旧 `%LOCALAPPDATA%\RoutineRest\state.json`，原文件不修改，原始副本保存在 `data/migration-backups`。统一记录一旦存在，旧文件不会再次导入或覆盖它。旧记录损坏时停止迁移并提示，不以空白记录覆盖。
+
+如果过去有多份旧记录，先完全退出应用，把各份 `state.json` 复制到普通可写目录，再在统一记录尚不存在时运行迁移工具：
+
+```powershell
+dotnet run --project tools/RoutineRest.Migrate -c Release -- "D:\Projects\routine_rest\app\data" "D:\backup\desktop.json" "D:\backup\cache.json"
+```
+
+迁移会保留所有日期、最新计时和设置，按时间及毫升数去重饮水记录。缺少事件明细的旧工作/休息累计不能可靠相加：同一天保留较大值，并在历史表中用 `*` 标记需要核对；CSV 也有相应列。所有来源文件保留在迁移备份中。迁移工具拒绝覆盖已经存在的统一记录。
 
 ## 常见问题
 

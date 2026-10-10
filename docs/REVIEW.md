@@ -124,3 +124,34 @@
 验证：调整杯数期望后，旧实现失败（期望6杯，实际3杯）；更新后40项行为测试通过，覆盖300ml的一满五空、150ml的半杯与空杯、零饮水全部空杯、可配置目标和超目标的大整数。WPF Release构建成功，实际300ml预览确认六杯填色及两列节奏布局。
 
 审查范围为显示映射和XAML布局，不涉及新增输入、权限或依赖。杯数仍严格限制1–12，计算没有分配无界资源；个人数据和既有设置保持不变。**Review Status: COMPLETE. Unaddressed: 0.**
+
+## 统一数据目录与旧记录迁移（2026-10-10）
+
+<!-- REVIEW:START -->
+## Code Review Complete
+
+Issue: #8
+Scope: MAJOR (shared persistence location, single writer, legacy migration and history visibility)
+Security-Sensitive: YES (local JSON input and persistence)
+Reviewed: 2026-10-10
+
+The executable's absolute base directory resolves one adjacent data directory, independent of the working directory and redirected AppData. A lifetime FileShare.None lease complements the existing named mutex across Windows package namespaces. Background duplicate launches exit without a dialog or writing default state.
+
+Migration reads and validates all sources before creating raw backups and saving the destination atomically. It never overwrites an existing unified primary or backup. Timestamped water/release events are deduplicated; original event offsets determine historical dates. Newest live timer/settings are retained. Daily counters without event-level timing retain their largest value and expose a review marker in the UI and CSV. Source snapshots are not mutated.
+
+Review findings fixed:
+- Startup cleanup must not save an unloaded default state: stateReady gates persistence.
+- Legacy aggregate water without matching events must remain represented; repeated migration is idempotent and checked arithmetic rejects overflow.
+- Missing unified primary with a valid backup must restore that backup rather than reimport a legacy copy.
+- Historical event dates must not shift after a machine timezone change.
+- Background duplicate startup must exit quietly.
+
+Clarity, maintainability, resource limits, failure paths, compatibility, documentation and style reviewed. Migration APIs have typed parameters and documented contracts. No changes to input guards, emergency release or power behavior.
+
+Security review (security-review skill): injection, authentication, data exposure, access control, configuration, deserialization, components, logging and SSRF checked. No shell construction from snapshot contents, no new network access, no credentials, no elevated application privileges and no third-party packages. Snapshot size, field values, note length and integer overflow are bounded/validated. Personal state and binaries remain excluded from Git. Authentication/remote authorization/SQL/XML/Web templates are not applicable.
+
+Validation: 50 behavior tests passed, WPF Release publish passed, migration CLI Release build passed with zero warnings/errors. File-lock and actual cross-context duplicate launch verified locally. Normal desktop restart and final physical file-path verification are recorded in the local verification document before task completion. Windows CI also builds the migration CLI.
+
+**Review Status: COMPLETE. Unaddressed: 0.**
+<!-- REVIEW:END -->
+

@@ -14,15 +14,22 @@ public sealed class JsonStateStore
     public JsonStateStore(string directory) { Directory.CreateDirectory(directory); FilePath = Path.Combine(directory, "state.json"); }
     public AppState Load()
     {
-        if (!File.Exists(FilePath)) return new AppState();
-        try { return Read(FilePath); }
+        if (!File.Exists(FilePath))
+        {
+            if (!File.Exists(FilePath + ".bak")) return new AppState();
+            AppState previous = ReadSnapshot(FilePath + ".bak");
+            Save(previous);
+            RecoveryNotice = "主记录文件缺失，已恢复上一份有效备份。";
+            return previous;
+        }
+        try { return ReadSnapshot(FilePath); }
         catch (Exception ex) when (ex is JsonException or IOException or InvalidDataException or ArgumentException)
         {
             string backup = FilePath + ".bak";
             if (File.Exists(backup))
             {
                 try {
-                    AppState state = Read(backup);
+                    AppState state = ReadSnapshot(backup);
                     ArchiveBroken();
                     RecoveryNotice = "状态文件损坏，已恢复上一份有效备份。";
                     return state;
@@ -46,7 +53,8 @@ public sealed class JsonStateStore
         if (File.Exists(FilePath)) File.Replace(temp, FilePath, FilePath + ".bak", true);
         else File.Move(temp, FilePath);
     }
-    private static AppState Read(string path)
+    /// <summary>Reads and validates a snapshot without repairing, archiving or otherwise modifying the source.</summary>
+    public static AppState ReadSnapshot(string path)
     {
         if (new FileInfo(path).Length > 16 * 1024 * 1024) throw new InvalidDataException("状态文件过大。");
         AppState state = JsonSerializer.Deserialize<AppState>(File.ReadAllText(path), Options)

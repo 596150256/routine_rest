@@ -25,3 +25,5 @@ jobs:
         run: dotnet run --project tests/RoutineRest.Tests/RoutineRest.Tests.csproj -c Release
       - name: Build Windows application
         run: dotnet publish src/RoutineRest.App/RoutineRest.App.csproj -c Release --self-contained false -o app
+      - name: Build migration tool
+        run: dotnet build tools/RoutineRest.Migrate/RoutineRest.Migrate.csproj -c Release
