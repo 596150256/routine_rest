@@ -8,7 +8,7 @@ public sealed class RoutineEngine
 {
     public const double WorkDuration = 50 * 60;
     public const double RestDuration = 10 * 60;
-    public const double IdleTimeout = 5 * 60;
+    public const double IdleTimeout = 3 * 60;
     public AppState State { get; }
     public double IdleSeconds { get; private set; }
     public bool IsWorkPaused => State.Phase == Phase.Working && IdleSeconds >= IdleTimeout;
@@ -17,7 +17,7 @@ public sealed class RoutineEngine
 
     public RoutineEngine(AppState state) { StateValidation.Validate(state); State = state; }
 
-    /// <summary>Counts only the first five idle minutes. An optional OS idle snapshot prevents restart and delayed-tick overcounting.</summary>
+    /// <summary>Counts only the first three idle minutes. An optional OS idle snapshot prevents restart and delayed-tick overcounting.</summary>
     public void Advance(DateTimeOffset now, double elapsedSeconds, bool newInput, bool sessionAvailable, double? secondsSinceLastInput = null)
     {
         if (!double.IsFinite(elapsedSeconds) || elapsedSeconds < 0)
