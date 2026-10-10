@@ -40,34 +40,37 @@ internal static class Program
             Equal(Phase.Waiting, e.State.Phase);
             Equal(1, e.State.WaterEntries.Count);
         });
-        Run("无操作超过5分钟暂停，半小时离开不增加工作", () => {
+        Run("无操作超过3分钟暂停，半小时离开不增加工作", () => {
             RoutineEngine e = Working();
             e.Advance(Start.AddMinutes(30), 1800, false, true);
-            Equal(300d, e.State.WorkSeconds);
-            Equal(300d, e.Today(Start).WorkSeconds);
+            Equal(180d, e.State.WorkSeconds);
+            Equal(180d, e.Today(Start).WorkSeconds);
             Equal(Phase.Working, e.State.Phase);
             Equal(0, e.Today(Start).CompletedBreaks);
             Equal(0d, e.Today(Start).RestSeconds);
         });
-        Run("跨过5分钟边界只累计剩余宽限秒数", () => {
+        Run("满180秒暂停，边界前继续计时且边界后不增加", () => {
             RoutineEngine e = Working();
-            e.Advance(Start.AddSeconds(299), 299, false, true);
-            Equal(299d, e.State.WorkSeconds);
-            e.Advance(Start.AddSeconds(301), 2, false, true);
-            Equal(300d, e.State.WorkSeconds);
-            e.Advance(Start.AddSeconds(901), 600, false, true);
-            Equal(300d, e.State.WorkSeconds);
+            e.Advance(Start.AddSeconds(179), 179, false, true);
+            Equal(179d, e.State.WorkSeconds);
+            True(!e.IsWorkPaused);
+            e.Advance(Start.AddSeconds(180), 1, false, true);
+            Equal(180d, e.State.WorkSeconds);
+            True(e.IsWorkPaused);
+            e.Advance(Start.AddSeconds(181), 1, false, true);
+            e.Advance(Start.AddSeconds(781), 600, false, true);
+            Equal(180d, e.State.WorkSeconds);
         });
-        Run("系统空闲快照停在零时，连续无新输入仍在5分钟暂停", () => {
+        Run("系统空闲快照停在零时，连续无新输入仍在3分钟暂停", () => {
             RoutineEngine e = Working();
             for (int second = 1; second <= 420; second++)
                 e.Advance(Start.AddSeconds(second), 1, false, true, 0);
-            Equal(300d, e.State.WorkSeconds);
+            Equal(180d, e.State.WorkSeconds);
             True(e.IsWorkPaused);
             e.Advance(Start.AddSeconds(421), 1, true, true, 0);
             True(!e.IsWorkPaused);
             e.Advance(Start.AddSeconds(422), 1, false, true, 0);
-            Equal(301d, e.State.WorkSeconds);
+            Equal(181d, e.State.WorkSeconds);
         });
         Run("系统空闲快照倒退不会恢复工作计时", () => {
             RoutineEngine e = Working();
@@ -75,30 +78,30 @@ internal static class Program
             e.Advance(Start.AddSeconds(360), 60, false, true, 1);
             True(e.IsWorkPaused);
             e.Advance(Start.AddSeconds(420), 60, false, true, 1);
-            Equal(300d, e.State.WorkSeconds);
+            Equal(180d, e.State.WorkSeconds);
         });
-        Run("从40分钟倒计时开始无操作，7分钟后停在35分钟", () => {
+        Run("从40分钟倒计时开始无操作，7分钟后停在37分钟", () => {
             RoutineEngine e = Working();
             e.State.WorkSeconds = 600;
             for (int second = 1; second <= 420; second++)
                 e.Advance(Start.AddSeconds(second), 1, false, true, 0);
-            Equal(2100d, e.RemainingSeconds);
+            Equal(2220d, e.RemainingSeconds);
             True(e.IsWorkPaused);
         });
         Run("恢复操作保留累计，不补算离开时间", () => {
             RoutineEngine e = Working();
             e.Advance(Start.AddSeconds(900), 900, false, true);
             e.Advance(Start.AddSeconds(1800), 900, true, true);
-            Equal(300d, e.State.WorkSeconds);
+            Equal(180d, e.State.WorkSeconds);
             e.Advance(Start.AddSeconds(1801), 1, false, true);
-            Equal(301d, e.State.WorkSeconds);
+            Equal(181d, e.State.WorkSeconds);
         });
         Run("累计40分钟后离开不会误触发50分钟休息", () => {
             RoutineEngine e = Working();
             for (int second = 60; second <= 2400; second += 60)
                 e.Advance(Start.AddSeconds(second), 60, true, true);
             e.Advance(Start.AddSeconds(6000), 3600, false, true);
-            Equal(2700d, e.State.WorkSeconds);
+            Equal(2580d, e.State.WorkSeconds);
             Equal(Phase.Working, e.State.Phase);
             Equal(0, e.State.PendingWaterCount);
         });
@@ -107,27 +110,27 @@ internal static class Program
             DateTimeOffset beforeMidnight = LocalAt(28, 23, 58, 0);
             e.Advance(beforeMidnight.AddMinutes(30), 1800, false, true);
             Equal(120d, e.State.Days["2026-09-28"].WorkSeconds);
-            Equal(180d, e.State.Days["2026-09-29"].WorkSeconds);
+            Equal(60d, e.State.Days["2026-09-29"].WorkSeconds);
         });
-        Run("重启时读取系统空闲时间，不重新赠送5分钟", () => {
+        Run("重启时读取系统空闲时间，不重新赠送3分钟", () => {
             RoutineEngine e = Working();
             e.Advance(Start.AddSeconds(300), 300, false, true);
             RoutineEngine loaded = new(e.State);
             loaded.Recover(Start.AddMinutes(30), 1800);
             True(loaded.IsWorkPaused);
             loaded.Advance(Start.AddMinutes(31), 60, false, true, 1860);
-            Equal(300d, loaded.State.WorkSeconds);
+            Equal(180d, loaded.State.WorkSeconds);
             loaded.Advance(Start.AddMinutes(31).AddSeconds(1), 1, true, true, 0);
             True(!loaded.IsWorkPaused);
-            Equal(300d, loaded.State.WorkSeconds);
+            Equal(180d, loaded.State.WorkSeconds);
             loaded.Advance(Start.AddMinutes(31).AddSeconds(2), 1, false, true, 1);
-            Equal(301d, loaded.State.WorkSeconds);
+            Equal(181d, loaded.State.WorkSeconds);
         });
         Run("延迟采样后恢复操作只累计输入后的实际秒数", () => {
             RoutineEngine e = Working();
             e.Advance(Start.AddSeconds(900), 900, false, true, 900);
             e.Advance(Start.AddSeconds(3600), 2700, true, true, 5);
-            Equal(305d, e.State.WorkSeconds);
+            Equal(185d, e.State.WorkSeconds);
             True(!e.IsWorkPaused);
         });
         Run("午夜后恢复操作不会把恢复后的工作算到前一天", () => {
@@ -151,11 +154,11 @@ internal static class Program
             e.Advance(Start.AddMinutes(5), 300, false, true);
             e.Advance(Start.AddMinutes(6), 60, false, false);
             e.Advance(Start.AddMinutes(7), 60, false, false);
-            Equal(300d, e.State.WorkSeconds);
+            Equal(180d, e.State.WorkSeconds);
             e.Advance(Start.AddMinutes(7).AddSeconds(1), 1, true, true);
-            Equal(300d, e.State.WorkSeconds);
+            Equal(180d, e.State.WorkSeconds);
             e.Advance(Start.AddMinutes(7).AddSeconds(2), 1, false, true);
-            Equal(301d, e.State.WorkSeconds);
+            Equal(181d, e.State.WorkSeconds);
         });
         Run("锁屏满10分钟自然完成休息", () => {
             RoutineEngine e = Working();
@@ -223,7 +226,7 @@ internal static class Program
             e.Advance(Start.AddMinutes(5), 300, false, true);
             RoutineEngine loaded = new(e.State);
             loaded.Recover(Start.AddHours(1));
-            Equal(300d, loaded.State.WorkSeconds);
+            Equal(180d, loaded.State.WorkSeconds);
             Equal(Phase.Working, loaded.State.Phase);
         });
         Run("重启恢复休息剩余时间", () => {
@@ -240,7 +243,7 @@ internal static class Program
                 store.Save(e.State);
                 e.Advance(Start.AddMinutes(5), 300, false, true);
                 store.Save(e.State);
-                Equal(300d, store.Load().WorkSeconds);
+                Equal(180d, store.Load().WorkSeconds);
                 File.WriteAllText(store.FilePath, "{ invalid");
                 Equal(0d, store.Load().WorkSeconds);
                 True(store.RecoveryNotice.Length > 0);

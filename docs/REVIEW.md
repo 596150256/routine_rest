@@ -154,3 +154,18 @@ Validation: 50 behavior tests passed, WPF Release publish passed, migration CLI 
 
 **Review Status: COMPLETE. Unaddressed: 0.**
 <!-- REVIEW:END -->
+
+## 三分钟无操作暂停（2026-10-10）
+
+<!-- REVIEW:START -->
+## Code Review Complete
+Issue: #10. Scope: MINOR. Security-Sensitive: YES (existing OS idle-time handling).
+
+Changed the shared inactivity threshold to 180 seconds and derived dashboard/tray text from that constant. Existing timing algorithm, rest countdown, input guard, persistence and emergency release are unchanged. Reviewed the updated boundary, stale-sample, resume, restart, delayed tick, short-lock and midnight tests.
+
+RED: old implementation failed with expected 180 seconds but actual 300. GREEN: all 50 behavioral tests pass; WPF Release publish passes. Public constant/XML comment and README examples match 3 minutes. No old 5-minute text remains in active source or current README.
+
+Security review: no new input capture, privilege changes, credentials, network access, packages or state schema changes. Numeric threshold remains finite/nonnegative; existing validation and monotonic-time handling retained. Injection/authentication/remote authorization/SQL/Web categories are not applicable. No findings.
+
+Review Status: COMPLETE. Unaddressed: 0.
+<!-- REVIEW:END -->

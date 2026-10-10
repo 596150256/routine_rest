@@ -192,7 +192,7 @@ public partial class App : System.Windows.Application
         dashboard?.Refresh();
         if (diagnosticsEnabled && tick - lastDiagnostics >= 5000) WriteTimingDiagnostics(tick, input);
         if (tray is not null) tray.Text = Engine.State.Phase == Phase.Resting ? "Routine Rest · 休息中"
-            : Engine.IsWorkPaused ? "Routine Rest · 无操作5分钟，计时已暂停"
+            : Engine.IsWorkPaused ? $"Routine Rest · 无操作{RoutineEngine.IdleTimeout / 60:0}分钟，计时已暂停"
             : $"Routine Rest · 距休息 {Math.Ceiling(Engine.RemainingSeconds / 60)} 分钟";
     }
 
