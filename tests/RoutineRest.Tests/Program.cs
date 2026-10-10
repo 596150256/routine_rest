@@ -380,6 +380,7 @@ internal static class Program
             StateValidation.Validate(state);
         });
 
+        count += UnifiedDataTests.Run();
         Console.WriteLine($"PASS: {count} behavioral tests");
     }
     private static RoutineEngine New() => new(new AppState());

@@ -14,6 +14,7 @@ public sealed class DaySummary
     public int CompletedBreaks { get; set; }
     public int InterruptedBreaks { get; set; }
     public int WaterMl { get; set; }
+    public string HistoryNote { get; set; } = "";
 }
 public sealed record WaterEntry(DateTimeOffset At, int Millilitres);
 public sealed record ReleaseEntry(DateTimeOffset At, string Reason);
@@ -58,7 +59,8 @@ public static class StateValidation
             DaySummary day = item.Value;
             if (!DateOnly.TryParseExact(item.Key, "yyyy-MM-dd", out _) || day is null ||
                 !ValidSeconds(day.WorkSeconds, 172800) || !ValidSeconds(day.RestSeconds, 172800) ||
-                day.WaterMl < 0 || day.CompletedBreaks < 0 || day.InterruptedBreaks < 0)
+                day.WaterMl < 0 || day.CompletedBreaks < 0 || day.InterruptedBreaks < 0 ||
+                day.HistoryNote is null || day.HistoryNote.Length > 200)
                 throw new InvalidDataException("每日统计不合法。");
         }
         foreach (WaterEntry entry in state.WaterEntries)

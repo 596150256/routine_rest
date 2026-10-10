@@ -24,7 +24,7 @@ public partial class MainWindow : Window
         MusicEnabled.IsChecked = app.Engine.State.Settings.MusicEnabled;
         Volume.Value = app.Engine.State.Settings.Volume * 100;
         AutoStart.IsChecked = app.IsAutoStartEnabled;
-        DataPathLabel.Text = "本地数据：" + app.DataDirectory + "\\state.json（含每日统计、每次喝水和中断记录）";
+        DataPathLabel.Text = "统一记录：" + app.DataDirectory + "\\state.json\n登录自启动和双击此 EXE 共用这一份记录；更新程序时保留 data 文件夹。";
         DailyWaterCups.ItemsSource = Enumerable.Range(1, 12);
         DailyWaterCups.SelectedItem = app.Engine.State.Settings.DailyWaterCups;
         WaterGoalLabel.Text = $"{app.Engine.State.Settings.DailyWaterCups} 杯 / {app.Engine.State.Settings.DailyWaterCups * 300} ml";
@@ -59,9 +59,10 @@ public partial class MainWindow : Window
         if ((DateTime.Now - lastHistory).TotalSeconds >= 5)
         {
             HistoryGrid.ItemsSource = engine.State.Days.OrderByDescending(p => p.Key).Select(p =>
-                new HistoryRow(p.Key, RestViewModel.FormatMinutes(p.Value.WorkSeconds), RestViewModel.FormatMinutes(p.Value.RestSeconds),
+                new HistoryRow(p.Key, RestViewModel.FormatMinutes(p.Value.WorkSeconds) + (p.Value.HistoryNote.Length > 0 ? " *" : ""), RestViewModel.FormatMinutes(p.Value.RestSeconds),
                     $"{p.Value.CompletedBreaks} / {p.Value.InterruptedBreaks}", $"{p.Value.WaterMl} ml")).ToList();
             lastHistory = DateTime.Now;
+            HistoryNotice.Visibility = engine.State.Days.Values.Any(item => item.HistoryNote.Length > 0) ? Visibility.Visible : Visibility.Collapsed;
         }
     }
     private void WaterGoalChanged(object sender, SelectionChangedEventArgs e)
@@ -126,12 +127,12 @@ public partial class MainWindow : Window
         SaveFileDialog picker = new() { Filter = "CSV 统计|*.csv", FileName = "routine-rest-daily.csv" };
         if (picker.ShowDialog(this) != true) return;
         try {
-            StringBuilder csv = new("日期,工作分钟,休息分钟,完成休息次数,中断次数,喝水毫升\r\n");
+            StringBuilder csv = new("日期,工作分钟,休息分钟,完成休息次数,中断次数,喝水毫升,历史时长需核对\r\n");
             foreach (System.Collections.Generic.KeyValuePair<string, DaySummary> pair in app.Engine.State.Days.OrderBy(p => p.Key))
                 csv.AppendLine(string.Join(",", pair.Key,
                     (pair.Value.WorkSeconds / 60).ToString("F1", CultureInfo.InvariantCulture),
                     (pair.Value.RestSeconds / 60).ToString("F1", CultureInfo.InvariantCulture),
-                    pair.Value.CompletedBreaks, pair.Value.InterruptedBreaks, pair.Value.WaterMl));
+                    pair.Value.CompletedBreaks, pair.Value.InterruptedBreaks, pair.Value.WaterMl, pair.Value.HistoryNote.Length > 0 ? "是" : "否"));
             File.WriteAllText(picker.FileName, csv.ToString(), new UTF8Encoding(true));
             MessageBox.Show(this, "每日统计已导出。");
         } catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { MessageBox.Show(this, "导出失败：" + ex.Message); }

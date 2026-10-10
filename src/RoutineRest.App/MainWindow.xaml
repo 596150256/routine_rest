@@ -19,6 +19,7 @@
     <DataGrid MinColumnWidth="110" HorizontalScrollBarVisibility="Disabled" x:Name="HistoryGrid" AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False" CanUserDeleteRows="False" HeadersVisibility="Column" GridLinesVisibility="Horizontal" RowHeight="36" ColumnHeaderHeight="36" BorderThickness="0" Background="#FFFEFA" MaxHeight="240" SelectionMode="Single">
      <DataGrid.Columns><DataGridTextColumn Header="日期" Binding="{Binding Date}" Width="*"/><DataGridTextColumn Header="工作" Binding="{Binding Work}" Width="*"/><DataGridTextColumn Header="休息" Binding="{Binding Rest}" Width="*"/><DataGridTextColumn Header="完成 / 中断" Binding="{Binding Breaks}" Width="*"/><DataGridTextColumn Header="喝水" Binding="{Binding Water}" Width="*"/></DataGrid.Columns>
     </DataGrid>
+    <TextBlock x:Name="HistoryNotice" Text="* 旧记录中存在不同的计时累计，已保留较大值，未直接相加。原始记录已备份，历史时长需要核对。" TextWrapping="Wrap" Foreground="{StaticResource Muted}" FontSize="12" Margin="0,8,0,0" Visibility="Collapsed"/>
     <StackPanel Orientation="Horizontal" Margin="0,14,0,0"><Button Content="导出每日统计 CSV" Click="ExportClick" Background="#E2E6DC" Foreground="{StaticResource Ink}"/><Button x:Name="PendingWaterButton" Content="填写本次喝水量" Click="WaterClick" Visibility="Collapsed"/></StackPanel>
    </StackPanel></ScrollViewer></TabItem>
    <TabItem Header="  音乐与设置  "><ScrollViewer VerticalScrollBarVisibility="Auto"><StackPanel Margin="12,22">
